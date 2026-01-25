@@ -1,5 +1,6 @@
 #!/bin/zsh
 
+
 docker stop media-cloud-db
 docker remove media-cloud-db
 
