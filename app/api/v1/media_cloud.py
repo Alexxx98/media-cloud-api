@@ -28,12 +28,3 @@ def get_files(
     service: MediaCloudService = Depends(get_media_file_service)
 ):
     return service.get_files(parent_id)
-
-
-@router.post('/directory/{directory_id}/upload')
-def upload_file(
-    directory_id: int, service: MediaCloudService = Depends(
-        get_media_file_service
-    )
-):
-    return
