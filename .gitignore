@@ -12,3 +12,6 @@ wheels/
 # Environmental variables
 .env
 db.env
+
+# Other
+.vscode

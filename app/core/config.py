@@ -11,14 +11,14 @@ class Config(BaseSettings):
 
     app_name: str = 'MediaCloudAPI'
     debug: bool = False
-    db_name: str
-    db_user: str
-    db_password: str
-    db_host: str
+    postgres_db: str
+    postgres_user: str
+    postgres_password: str
+    postgres_host: str
 
     @property
     def db_url(self):
-        return f'postgresql://{self.db_user}:{self.db_password}@{self.db_host}:5434/{self.db_name}'
+        return f'postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:5434/{self.postgres_db}'
 
 
 config = Config()

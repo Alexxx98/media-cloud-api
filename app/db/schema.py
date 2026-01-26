@@ -8,11 +8,8 @@ class FileType(str, Enum):
     DIRECTORY = 'directory'
 
 
-class CreateFile(SQLModel):
+class CreateDirectory(SQLModel):
     name: str
-    file_type: FileType
+    file_type: FileType = 'directory'
     parent_id: int | None = None
-    size: int | None = None
-    mime_type: str | None = None
-    storage_path: str | None = None
     uploaded_by: str | None = None

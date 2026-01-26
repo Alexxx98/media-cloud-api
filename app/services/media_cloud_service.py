@@ -1,29 +1,38 @@
 import os
+from pathlib import Path
 
-from fastapi import UploadFile, HTTPException, File
+from fastapi import HTTPException, UploadFile, File, Form
 from sqlmodel import Session, select
 
 from app.models.file import FileModel
-from app.db.schema import CreateFile
+from app.db.schema import CreateDirectory
 
 
 class MediaCloudService:
     def __init__(self, session: Session):
         self._db = session
 
+    # GET METHODS
+    # Get root directory
     def get_root_files(self):
         return self._db.exec(select(FileModel).where(
                 FileModel.parent_id == None
             )
         ).all()
 
-    def create_directory(self, directory: CreateFile):
+    # Get files and directories by it's parent directory id
+    def get_files(self, directory_id: int):
+        return self._db.exec(select(FileModel).where(
+            directory_id == FileModel.parent_id
+        )).all()
+
+    # POST METHODS
+    # Create directory
+    def create_directory(self, directory: CreateDirectory):
         db_directory = FileModel(
             name=directory.name,
             file_type=directory.file_type,
             parent_id=directory.parent_id,
-            size=directory.size,
-            mime_type=directory.mime_type,
             uploaded_by=directory.uploaded_by
         )
 
@@ -32,20 +41,31 @@ class MediaCloudService:
         self._db.refresh(db_directory)
         return db_directory
 
-    # Get files and directories by it's parent directory id
-    def get_files(self, directory_id: int):
-        return self._db.exec(select(FileModel).where(
-            directory_id == FileModel.parent_id
-        )).all()
-
     # Upload single file
-    def upload_file(self, file: UploadFile = File(...)):
+    def upload_file(
+            self,
+            file: UploadFile = File(...),
+            parent_id: int = Form(...),
+            mime_type: str = Form(...),
+            uploaded_by: str | None = Form(None)
+    ):
         if not file:
             return HTTPException(status_code=400, detail='No file provided')
 
-        filename = file.filename
-        destination = os.path.join(os.getenv('STORAGE_PATH'), filename)
+        destination = os.path.join(os.getenv('STORAGE_PATH'), file.filename)
 
+        # Create db metadata
+        db_file = FileModel(
+            name=file.filename,
+            file_type='media',
+            parent_id=parent_id,
+            size=file.size,
+            mime_type=mime_type,
+            storage_path=destination,
+            uploaded_by=uploaded_by
+        )
+
+        # Upload file to server storage
         try:
             with open(destination, 'wb') as buffer:
                 buffer.write(file.file.read())
@@ -54,4 +74,37 @@ class MediaCloudService:
                 status_code=400, detail='Could not save the file'
             )
 
-        return {'detail': file}
+        # Save metadata to db
+        self._db.add(db_file)
+        self._db.commit()
+        self._db.refresh(db_file)
+
+        return db_file
+
+    # DESTROY METHODS
+    # Delete file
+    def delete_file(self, file_id: int):
+        # Get file metadata from db
+        db_file = self._db.get(FileModel, file_id)
+
+        if not db_file:
+            raise HTTPException(status_code=404, detail='File not found')
+
+        # Get file from filesystem
+        file_path = Path(db_file.storage_path)
+
+        # Delete file from filesystem
+        try:
+            if file_path.exists():
+                file_path.unlink()
+        except Exception as ext:
+            raise HTTPException(
+                status_code=500,
+                detail=f'Delete file from storage failed: {ext}'
+            )
+
+        # Delete file metadata from db
+        self._db.delete(db_file)
+        self._db.commit()
+
+        return {'status': 'File deleted'}
