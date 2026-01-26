@@ -3,7 +3,7 @@ from sqlmodel import Session
 
 from app.services.media_cloud_service import MediaCloudService
 from app.models.file import FileModel
-from app.db.schema import CreateDirectory
+from app.db.schema import CreateDirectory, RenameDirectory
 from app.db.session_dependency import get_session
 
 
@@ -16,7 +16,7 @@ def get_media_file_service(session: Session = Depends(get_session)):
 
 # GET METHODS
 # Get files and directories at the root
-@router.get('/directory', response_model=list[FileModel])
+@router.get('/root', response_model=list[FileModel])
 def get_root_files(service: MediaCloudService = Depends(
     get_media_file_service)
 ):
@@ -57,6 +57,17 @@ def upload_file(
         mime_type,
         uploaded_by
     )
+
+
+# PATCH METHODS
+# Rename directory
+@router.patch('/directory/{directory_id}/rename/')
+def rename_directory(
+    directory_id: int,
+    data: RenameDirectory,
+    service: MediaCloudService = Depends(get_media_file_service)
+):
+    return service.rename_directory(directory_id, data)
 
 
 # DESTROY METHODS

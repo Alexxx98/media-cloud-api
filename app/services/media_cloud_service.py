@@ -1,16 +1,19 @@
 import os
+
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, File, Form
 from sqlmodel import Session, select
 
 from app.models.file import FileModel
-from app.db.schema import CreateDirectory
+from app.db.schema import CreateDirectory, RenameDirectory
+from app.services.auth_service import AuthService
 
 
 class MediaCloudService:
     def __init__(self, session: Session):
         self._db = session
+        self.auth_service = AuthService(session)
 
     # GET METHODS
     # Get root directory
@@ -29,10 +32,16 @@ class MediaCloudService:
     # POST METHODS
     # Create directory
     def create_directory(self, directory: CreateDirectory):
+        password = directory.password
+        # Hash the password using bcrypt
+        if password:
+            password = self.auth_service.validate_password(password)
+
         db_directory = FileModel(
             name=directory.name,
             file_type=directory.file_type,
             parent_id=directory.parent_id,
+            password=password,
             uploaded_by=directory.uploaded_by
         )
 
@@ -80,6 +89,27 @@ class MediaCloudService:
         self._db.refresh(db_file)
 
         return db_file
+
+    # UPDATE METHODS
+    # Rename
+    def rename_directory(self, directory_id: int, data: RenameDirectory):
+        db_directory = self._db.get(FileModel, directory_id)
+        if not db_directory:
+            raise HTTPException(status_code=404, detail='Directory not found.')
+
+        # Sets desired key/keys to null if value provided
+        update_data = data.model_dump(exclude_unset=True)
+
+        # Assigns new value/values to previously nullified keys
+        for key, value in update_data.items():
+            setattr(db_directory, key, value)
+
+        # Add updated model to db
+        self._db.add(db_directory)
+        self._db.commit()
+        self._db.refresh(db_directory)
+
+        return db_directory
 
     # DESTROY METHODS
     # Delete file
