@@ -1,4 +1,5 @@
 from enum import Enum
+from datetime import datetime
 
 from sqlmodel import SQLModel
 
@@ -13,6 +14,24 @@ class CreateDirectory(SQLModel):
     parent_id: int | None = None
     password: str | None = None
     uploaded_by: str | None = None
+
+
+class DirectoryResponse(SQLModel):
+    id: int
+    name: str
+    parent_id: int | None = None
+    uploaded_by: str | None = None
+    uploaded_at: datetime
+
+
+class FileResponse(SQLModel):
+    id: int
+    name: str
+    parent_id: int
+    size: int
+    mime_type: str
+    uploaded_by: str | None = None
+    uploaded_at: datetime
 
 
 class Rename(SQLModel):

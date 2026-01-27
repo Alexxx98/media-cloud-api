@@ -125,7 +125,7 @@ class MediaCloudService:
         self._db.commit()
         self._db.refresh(directory)
 
-        return directory
+        return {'status': 'Password successfully changed.'}
 
     # DESTROY METHODS
     # Delete directory with its content
