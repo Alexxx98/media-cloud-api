@@ -6,7 +6,7 @@ from fastapi import HTTPException, UploadFile, File, Form
 from sqlmodel import Session, select
 
 from app.models.file import FileModel
-from app.db.schema import CreateDirectory, RenameDirectory
+from app.db.schema import CreateDirectory, Rename, ChangePassword
 from app.services.auth_service import AuthService
 
 
@@ -35,11 +35,11 @@ class MediaCloudService:
         password = directory.password
         # Hash the password using bcrypt
         if password:
-            password = self.auth_service.validate_password(password)
+            password = self.auth_service.create_password(password)
 
         db_directory = FileModel(
             name=directory.name,
-            file_type=directory.file_type,
+            file_type='directory',
             parent_id=directory.parent_id,
             password=password,
             uploaded_by=directory.uploaded_by
@@ -90,11 +90,11 @@ class MediaCloudService:
 
         return db_file
 
-    # UPDATE METHODS
-    # Rename
-    def rename_directory(self, directory_id: int, data: RenameDirectory):
-        db_directory = self._db.get(FileModel, directory_id)
-        if not db_directory:
+    # PATCH METHODS
+    # Rename file or directory
+    def rename(self, id: int, data: Rename):
+        file = self._db.get(FileModel, id)
+        if not file:
             raise HTTPException(status_code=404, detail='Directory not found.')
 
         # Sets desired key/keys to null if value provided
@@ -102,16 +102,68 @@ class MediaCloudService:
 
         # Assigns new value/values to previously nullified keys
         for key, value in update_data.items():
-            setattr(db_directory, key, value)
+            setattr(file, key, value)
 
         # Add updated model to db
-        self._db.add(db_directory)
+        self._db.add(file)
         self._db.commit()
-        self._db.refresh(db_directory)
+        self._db.refresh(file)
 
-        return db_directory
+        return file
+
+    # Change directory's password
+    def change_password(self, directory_id, data: ChangePassword):
+        directory = self._db.get(FileModel, directory_id)
+
+        new_password = self.auth_service.change_password(
+            directory, data.current_password, data.new_password
+        )
+
+        directory.password = new_password
+
+        self._db.add(directory)
+        self._db.commit()
+        self._db.refresh(directory)
+
+        return directory
 
     # DESTROY METHODS
+    # Delete directory with its content
+    def delete_directory(self, directory_id):
+        directory = self._db.get(FileModel, directory_id)
+        media_files = self._db.exec(
+            select(FileModel).where(FileModel.parent_id == directory_id)
+        ).all()
+
+        # Remove files
+        for file in media_files:
+            # Remove recursively if directory
+            if file.file_type == 'directory':
+                self.delete_directory(file.id)
+
+            # First remove file from filesystem
+            if file.storage_path:
+                file_path = Path(file.storage_path)
+
+                try:
+                    if file_path.exists():
+                        file_path.unlink()
+                except Exception as ext:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f'Delete file from storage failed: {ext}'
+                    )
+
+            # Delete file metadata from db
+            self._db.delete(file)
+            self._db.commit()
+
+        # Delete directory
+        self._db.delete(directory)
+        self._db.commit()
+
+        return {'status': 'Directory successfully deleted.'}
+
     # Delete file
     def delete_file(self, file_id: int):
         # Get file metadata from db

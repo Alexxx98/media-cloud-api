@@ -3,7 +3,7 @@ from sqlmodel import Session
 
 from app.services.media_cloud_service import MediaCloudService
 from app.models.file import FileModel
-from app.db.schema import CreateDirectory, RenameDirectory
+from app.db.schema import CreateDirectory, Rename, ChangePassword
 from app.db.session_dependency import get_session
 
 
@@ -43,7 +43,7 @@ def create_directory(
 
 
 # Upload a file
-@router.post('/upload', response_model=FileModel)
+@router.post('/file/upload', response_model=FileModel)
 def upload_file(
     file: UploadFile,
     parent_id: int = Form(...),
@@ -61,18 +61,47 @@ def upload_file(
 
 # PATCH METHODS
 # Rename directory
-@router.patch('/directory/{directory_id}/rename/')
+@router.patch('/directory/{directory_id}/rename')
 def rename_directory(
     directory_id: int,
-    data: RenameDirectory,
+    data: Rename,
     service: MediaCloudService = Depends(get_media_file_service)
 ):
-    return service.rename_directory(directory_id, data)
+    return service.rename(directory_id, data)
+
+
+# Rename file
+@router.patch('/file/{file_id}/rename')
+def rename_file(
+    file_id: int,
+    data: Rename,
+    service: MediaCloudService = Depends(get_media_file_service)
+):
+    return service.rename(file_id, data)
+
+
+# Change directory's password
+@router.patch('/directory/{directory_id}/change_password')
+def change_password(
+    directory_id: int,
+    data: ChangePassword,
+    service: MediaCloudService = Depends(get_media_file_service)
+):
+    return service.change_password(directory_id, data)
 
 
 # DESTROY METHODS
+# Delete directory
+@router.delete('/directory/{directory_id}/delete')
+def delete_directory(
+    directory_id: int,
+    service: MediaCloudService = Depends(get_media_file_service)
+):
+    return service.delete_directory(directory_id)
+
+
 # Delete file
-@router.delete('/delete/{file_id}')
+@router.delete('/file/{file_id}/delete')
 def delete_file(
     file_id: int,
     service: MediaCloudService = Depends(get_media_file_service)

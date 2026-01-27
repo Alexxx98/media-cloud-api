@@ -1,6 +1,9 @@
 import bcrypt
 
+from fastapi import HTTPException
 from sqlmodel import Session
+
+from app.models.file import FileModel
 
 
 class AuthService():
@@ -20,11 +23,22 @@ class AuthService():
         return password_hash
 
     def change_password(
-            self, directory_id, current_password, new_password
+            self, directory: FileModel, current_password, new_password
     ) -> bytes:
-        # TODO: Implement password changing logic
-        return
+        # Validate current password if exists
+        if directory.password:
+            if not self.validate_password(directory, current_password):
+                raise HTTPException(
+                    status_code=403, detail='Current password does not match.'
+                )
 
-    def validate_password(self, directory_id, password: str) -> bool:
-        # TODO: Implement password validation logic
-        return
+        password_hash = self.hash_password(new_password)
+        return password_hash
+
+    def validate_password(self, directory: FileModel, password: str) -> bool:
+        password_hash = self.hash_password(password)
+        print(password_hash)
+        print(directory.password)
+        if password_hash == directory.password:
+            return True
+        return False
