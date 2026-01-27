@@ -2,7 +2,7 @@ import os
 
 from pathlib import Path
 
-from fastapi import HTTPException, UploadFile, File, Form
+from fastapi import HTTPException, UploadFile, File, Form, Header
 from sqlmodel import Session, select
 
 from app.models.file import FileModel
@@ -24,7 +24,17 @@ class MediaCloudService:
         ).all()
 
     # Get files and directories by it's parent directory id
-    def get_files(self, directory_id: int):
+    def get_files(
+        self,
+        directory_id: int,
+        x_directory_password: str | None = Header(default=None)
+    ):
+        directory = self._db.get(FileModel, directory_id)
+        if directory.password_hash:
+            self.auth_service.verify_access(
+                directory, x_directory_password
+            )
+
         return self._db.exec(select(FileModel).where(
             directory_id == FileModel.parent_id
         )).all()
@@ -93,10 +103,20 @@ class MediaCloudService:
 
     # PATCH METHODS
     # Rename file or directory
-    def rename(self, id: int, data: Rename):
+    def rename(
+        self,
+        id: int,
+        data: Rename,
+        x_directory_password: str | None = Header(default=None)
+    ):
         file = self._db.get(FileModel, id)
         if not file:
             raise HTTPException(status_code=404, detail='Directory not found.')
+
+        # Validate password if directory
+        if file.file_type == 'directory':
+            if file.password_hash:
+                self.auth_service.verify_access(file, x_directory_password)
 
         # Sets desired key/keys to null if value provided
         update_data = data.model_dump(exclude_unset=True)
@@ -131,8 +151,17 @@ class MediaCloudService:
 
     # DESTROY METHODS
     # Delete directory with its content
-    def delete_directory(self, directory_id):
+    def delete_directory(
+        self,
+        directory_id: int,
+        x_directory_password: str | None = Header(default=None)
+    ):
         directory = self._db.get(FileModel, directory_id)
+        if directory.password_hash:
+            self.auth_service.verify_access(
+                directory, x_directory_password
+            )
+
         media_files = self._db.exec(
             select(FileModel).where(FileModel.parent_id == directory_id)
         ).all()

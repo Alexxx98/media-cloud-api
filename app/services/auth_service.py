@@ -11,7 +11,7 @@ class AuthService():
         self._db = session
 
     def create_password(self, password: str) -> tuple[bytes]:
-        """ Create new password hash """
+        """ Create a new password hash """
         # First turn it into the array of bytes
         password_bytes = password.encode('utf-8')
 
@@ -47,3 +47,14 @@ class AuthService():
         if password_hash == directory.password_hash:
             return True
         return False
+
+    def verify_access(
+            self,
+            directory: FileModel,
+            password: str
+    ):
+        if not password:
+            raise HTTPException(status_code=401, detail='Password required.')
+
+        if not self.validate_password(directory, password):
+            raise HTTPException(status_code=401, detail='Invalid password.')

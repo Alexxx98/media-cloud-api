@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, Depends, Form
+from fastapi import APIRouter, UploadFile, Depends, Form, Header
 from sqlmodel import Session
 
 from app.services.media_cloud_service import MediaCloudService
@@ -30,12 +30,13 @@ def get_root_files(service: MediaCloudService = Depends(
 
 
 # Get all files and directories of certain parent directory
-@router.get('/directory/{parent_id}', response_model=list[DirectoryResponse])
+@router.get('/directory/{parent_id}', response_model=list[FileModel])
 def get_files(
     parent_id: int,
+    x_directory_password: str | None = Header(default=None),
     service: MediaCloudService = Depends(get_media_file_service)
 ):
-    return service.get_files(parent_id)
+    return service.get_files(parent_id, x_directory_password)
 
 
 # POST METHODS
@@ -73,9 +74,10 @@ def upload_file(
 def rename_directory(
     directory_id: int,
     data: Rename,
+    x_directory_password: str | None = Header(default=None),
     service: MediaCloudService = Depends(get_media_file_service)
 ):
-    return service.rename(directory_id, data)
+    return service.rename(directory_id, data, x_directory_password)
 
 
 # Rename file
@@ -103,9 +105,10 @@ def change_password(
 @router.delete('/directory/{directory_id}/delete')
 def delete_directory(
     directory_id: int,
+    x_directory_password: str | None = Header(default=None),
     service: MediaCloudService = Depends(get_media_file_service)
 ):
-    return service.delete_directory(directory_id)
+    return service.delete_directory(directory_id, x_directory_password)
 
 
 # Delete file
