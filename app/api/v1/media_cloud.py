@@ -3,7 +3,13 @@ from sqlmodel import Session
 
 from app.services.media_cloud_service import MediaCloudService
 from app.models.file import FileModel
-from app.db.schema import CreateDirectory, Rename, ChangePassword
+from app.db.schema import (
+    CreateDirectory,
+    Rename,
+    ChangePassword,
+    DirectoryResponse,
+    FileResponse
+)
 from app.db.session_dependency import get_session
 
 
@@ -24,7 +30,7 @@ def get_root_files(service: MediaCloudService = Depends(
 
 
 # Get all files and directories of certain parent directory
-@router.get('/directory/{parent_id}', response_model=list[FileModel])
+@router.get('/directory/{parent_id}', response_model=list[DirectoryResponse])
 def get_files(
     parent_id: int,
     service: MediaCloudService = Depends(get_media_file_service)
@@ -34,7 +40,7 @@ def get_files(
 
 # POST METHODS
 # Create directory
-@router.post('/directory/create', response_model=FileModel)
+@router.post('/directory/create', response_model=DirectoryResponse)
 def create_directory(
     directory: CreateDirectory,
     service: MediaCloudService = Depends(get_media_file_service)
@@ -43,7 +49,7 @@ def create_directory(
 
 
 # Upload a file
-@router.post('/file/upload', response_model=FileModel)
+@router.post('/file/upload', response_model=FileResponse)
 def upload_file(
     file: UploadFile,
     parent_id: int = Form(...),
@@ -61,7 +67,9 @@ def upload_file(
 
 # PATCH METHODS
 # Rename directory
-@router.patch('/directory/{directory_id}/rename')
+@router.patch(
+        '/directory/{directory_id}/rename', response_model=DirectoryResponse
+    )
 def rename_directory(
     directory_id: int,
     data: Rename,
@@ -71,7 +79,7 @@ def rename_directory(
 
 
 # Rename file
-@router.patch('/file/{file_id}/rename')
+@router.patch('/file/{file_id}/rename', response_model=FileResponse)
 def rename_file(
     file_id: int,
     data: Rename,
