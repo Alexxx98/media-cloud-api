@@ -35,13 +35,14 @@ class MediaCloudService:
         password = directory.password
         # Hash the password using bcrypt
         if password:
-            password = self.auth_service.create_password(password)
+            password, salt = self.auth_service.create_password(password)
 
         db_directory = FileModel(
             name=directory.name,
             file_type='directory',
             parent_id=directory.parent_id,
-            password=password,
+            password_hash=password,
+            hash_salt=salt,
             uploaded_by=directory.uploaded_by
         )
 
@@ -115,11 +116,12 @@ class MediaCloudService:
     def change_password(self, directory_id, data: ChangePassword):
         directory = self._db.get(FileModel, directory_id)
 
-        new_password = self.auth_service.change_password(
+        new_password, new_salt = self.auth_service.change_password(
             directory, data.current_password, data.new_password
         )
 
-        directory.password = new_password
+        directory.password_hash = new_password
+        directory.hash_salt = new_salt
 
         self._db.add(directory)
         self._db.commit()

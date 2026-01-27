@@ -12,7 +12,8 @@ class FileModel(SQLModel, table=True):
     name: str
     file_type: FileType = Field(nullable=False)
     parent_id: int | None = Field(foreign_key='file.id')
-    password: bytes | None = None
+    password_hash: bytes | None = None
+    hash_salt: bytes | None = None
     size: int | None = None
     mime_type: str | None = None
     storage_path: str | None = None
