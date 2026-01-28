@@ -1,13 +1,12 @@
-import os
-
 from pathlib import Path
 
-from fastapi import HTTPException, UploadFile, File, Form, Header
+from fastapi import HTTPException, UploadFile, Form, Header
 from sqlmodel import Session, select
 
 from app.models.file import FileModel
 from app.db.schema import CreateDirectory, Rename, ChangePassword
 from app.services.auth_service import AuthService
+from app.utils.media_utils import MediaUtils
 
 
 class MediaCloudService:
@@ -43,6 +42,7 @@ class MediaCloudService:
     # Create directory
     def create_directory(self, directory: CreateDirectory):
         password = directory.password
+        salt = None
         # Hash the password using bcrypt
         if password:
             password, salt = self.auth_service.create_password(password)
@@ -61,45 +61,47 @@ class MediaCloudService:
         self._db.refresh(db_directory)
         return db_directory
 
-    # Upload single file
-    def upload_file(
-            self,
-            file: UploadFile = File(...),
-            parent_id: int = Form(...),
-            mime_type: str = Form(...),
-            uploaded_by: str | None = Form(None)
-    ):
-        if not file:
-            return HTTPException(status_code=400, detail='No file provided')
+    # Upload files
+    async def upload_files(
+        self,
+        files: list[UploadFile],
+        directory_id: int = Form(...),
+        uploaded_by: str | None = Form(default=None)
+    ) -> list[FileModel]:
+        if not files:
+            return HTTPException(status_code=400, detail='No Files provided')
 
-        destination = os.path.join(os.getenv('STORAGE_PATH'), file.filename)
+        response_files = []
 
-        # Create db metadata
-        db_file = FileModel(
-            name=file.filename,
-            file_type='media',
-            parent_id=parent_id,
-            size=file.size,
-            mime_type=mime_type,
-            storage_path=destination,
-            uploaded_by=uploaded_by
-        )
+        for file in files:
+            destination = MediaUtils.make_file_path(file.filename, 1)
+            mime_type = await MediaUtils.detect_mime_type(file)
 
-        # Upload file to server storage
-        try:
-            with open(destination, 'wb') as buffer:
-                buffer.write(file.file.read())
-        except Exception:
-            return HTTPException(
-                status_code=400, detail='Could not save the file'
+            try:
+                with open(destination, 'wb') as media_file:
+                    media_file.write(file.file.read())
+            except Exception:
+                raise HTTPException(
+                    status_code=400, detail='Failed to save the file.'
+                )
+
+            db_file = FileModel(
+                name=file.filename,
+                file_type='media',
+                parent_id=directory_id,
+                size=file.size,
+                mime_type=mime_type,
+                storage_path=destination,
+                uploaded_by=uploaded_by
             )
 
-        # Save metadata to db
-        self._db.add(db_file)
-        self._db.commit()
-        self._db.refresh(db_file)
+            self._db.add(db_file)
+            self._db.commit()
+            self._db.refresh(db_file)
 
-        return db_file
+            response_files.append(db_file)
+
+        return response_files
 
     # PATCH METHODS
     # Rename file or directory

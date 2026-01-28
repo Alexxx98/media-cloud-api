@@ -18,7 +18,9 @@ class Config(BaseSettings):
 
     @property
     def db_url(self):
-        return f'postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:5434/{self.postgres_db}'
+        credentials = f'{self.postgres_user}:{self.postgres_password}'
+        host = f'{self.postgres_host}:5434'
+        return f'postgresql://{credentials}@{host}/{self.postgres_db}'
 
 
 config = Config()
