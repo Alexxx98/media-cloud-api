@@ -15,7 +15,7 @@ class DirectoryResponse(SQLModel):
     type: str = 'directory'
     name: str
     parent_id: int | None = None
-    uploaded_by: str | None = None
+    added_by: str | None = None
     uploaded_at: datetime
 
 
@@ -26,7 +26,7 @@ class FileResponse(SQLModel):
     parent_id: int
     size: int
     mime_type: str
-    uploaded_by: str | None = None
+    added_by: str | None = None
     uploaded_at: datetime
 
 

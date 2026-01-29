@@ -53,7 +53,7 @@ class MediaCloudService:
             parent_id=directory.parent_id,
             password_hash=password,
             hash_salt=salt,
-            uploaded_by=directory.uploaded_by
+            added_by=directory.uploaded_by
         )
 
         self._db.add(db_directory)
@@ -92,7 +92,7 @@ class MediaCloudService:
                 size=file.size,
                 mime_type=mime_type,
                 storage_path=destination,
-                uploaded_by=uploaded_by
+                added_by=uploaded_by
             )
 
             self._db.add(db_file)
