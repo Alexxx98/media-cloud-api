@@ -1,6 +1,6 @@
 from typing import Union
 
-from fastapi import APIRouter, UploadFile, Query, Depends, Form, Header
+from fastapi import APIRouter, UploadFile, Query, Depends, Form, Header, Body
 from sqlmodel import Session
 
 from app.services.media_cloud_service import MediaCloudService
@@ -52,15 +52,6 @@ async def download_file(
     return await service.download_file(file_id)
 
 
-# Download files
-@router.get('/files/download')
-async def download_files(
-    file_ids: list[int] = Query(...),
-    service: MediaCloudService = Depends(get_media_file_service)
-
-):
-    return await service.download_files(file_ids)
-
 # POST METHODS
 # Create directory
 @router.post('/directory/create', response_model=DirectoryResponse)
@@ -84,6 +75,17 @@ async def upload_files(
         parent_id,
         uploaded_by
     )
+
+
+# Download files
+@router.post('/files/download')
+async def download_files(
+    file_ids: list[int] = Query(...),
+    request = Body(default=None),
+    service: MediaCloudService = Depends(get_media_file_service)
+
+):
+    return await service.download_files(file_ids, request)
 
 
 # PATCH METHODS

@@ -51,36 +51,6 @@ class MediaCloudService:
             self._db.get(FileModel, file_id).storage_path
         )
 
-    # Download files
-    async def download_files(self, file_ids: list[int]):
-        buffer = io.BytesIO()
-
-        # Compress files binary to zip archive
-        with zipfile.ZipFile(
-            buffer, 'w', compression=zipfile.ZIP_DEFLATED
-        ) as zip:
-            # Find file path by each id
-            for file_id in file_ids:
-                file_path = Path(
-                    self._db.get(FileModel, file_id).storage_path
-                )
-                if not file_path:
-                    continue
-
-                # Write file to zip archive
-                zip.write(file_path, arcname=file_path.name)
-        buffer.seek(0)
-
-        return StreamingResponse(
-            iter([buffer.getvalue()]),
-            media_type='application/zip',
-            headers={
-                'Content-Disposition': 'attachment; filename=cloud_files.zip'
-            },
-            # If there's no such header, output would be bytes,
-            # instead of downloadable zip archive.
-        )
-
     # POST METHODS
     # Create directory
     def create_directory(self, directory: CreateDirectory):
@@ -145,6 +115,46 @@ class MediaCloudService:
             response_files.append(db_file)
 
         return response_files
+
+    # Download files
+    async def download_files(self, file_ids: list[int], request):
+        buffer = io.BytesIO()
+
+        # Compress files binary to zip archive
+        with zipfile.ZipFile(
+            buffer, 'w', compression=zipfile.ZIP_DEFLATED
+        ) as zip:
+            # Find file path by each id
+            for file_id in file_ids:
+                file_path = Path(
+                    self._db.get(FileModel, file_id).storage_path
+                )
+                if not file_path:
+                    continue
+
+                # Write file to zip archive
+                zip.write(file_path, arcname=file_path.name)
+        buffer.seek(0)
+
+        try:
+            if not request:
+                arch_name = 'cloud_files'
+            else:
+                arch_name = request['archive_name']
+        except KeyError:
+            raise HTTPException(
+                status_code=406, detail='Key should be archive_name'
+            )
+
+        return StreamingResponse(
+            iter([buffer.getvalue()]),
+            media_type='application/zip',
+            headers={
+                'Content-Disposition': f'attachment; filename={arch_name}.zip'
+            },
+            # If there's no such header, output would be bytes,
+            # instead of downloadable zip archive.
+        )
 
     # PATCH METHODS
     # Rename file or directory
