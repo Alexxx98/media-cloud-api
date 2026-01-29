@@ -48,8 +48,8 @@ class MediaCloudService:
             password, salt = self.auth_service.create_password(password)
 
         db_directory = FileModel(
+            type='directory',
             name=directory.name,
-            file_type='directory',
             parent_id=directory.parent_id,
             password_hash=password,
             hash_salt=salt,
@@ -86,8 +86,8 @@ class MediaCloudService:
                 )
 
             db_file = FileModel(
+                type='media',
                 name=file.filename,
-                file_type='media',
                 parent_id=directory_id,
                 size=file.size,
                 mime_type=mime_type,
@@ -116,7 +116,7 @@ class MediaCloudService:
             raise HTTPException(status_code=404, detail='Directory not found.')
 
         # Validate password if directory
-        if file.file_type == 'directory':
+        if file.type == 'directory':
             if file.password_hash:
                 self.auth_service.verify_access(file, x_directory_password)
 
@@ -171,7 +171,7 @@ class MediaCloudService:
         # Remove files
         for file in media_files:
             # Remove recursively if directory
-            if file.file_type == 'directory':
+            if file.type == 'directory':
                 self.delete_directory(file.id)
 
             # First remove file from filesystem

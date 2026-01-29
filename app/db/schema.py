@@ -1,12 +1,6 @@
-from enum import Enum
 from datetime import datetime
 
 from sqlmodel import SQLModel
-
-
-class FileType(str, Enum):
-    FILE = 'media'
-    DIRECTORY = 'directory'
 
 
 class CreateDirectory(SQLModel):
@@ -18,6 +12,7 @@ class CreateDirectory(SQLModel):
 
 class DirectoryResponse(SQLModel):
     id: int
+    type: str = 'directory'
     name: str
     parent_id: int | None = None
     uploaded_by: str | None = None
@@ -26,6 +21,7 @@ class DirectoryResponse(SQLModel):
 
 class FileResponse(SQLModel):
     id: int
+    type: str = 'media'
     name: str
     parent_id: int
     size: int

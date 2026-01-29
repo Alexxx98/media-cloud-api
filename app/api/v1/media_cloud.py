@@ -1,8 +1,9 @@
+from typing import Union
+
 from fastapi import APIRouter, UploadFile, Depends, Form, Header
 from sqlmodel import Session
 
 from app.services.media_cloud_service import MediaCloudService
-from app.models.file import FileModel
 from app.db.schema import (
     CreateDirectory,
     Rename,
@@ -22,7 +23,7 @@ def get_media_file_service(session: Session = Depends(get_session)):
 
 # GET METHODS
 # Get files and directories at the root
-@router.get('/root', response_model=list[FileModel])
+@router.get('/root', response_model=list[DirectoryResponse])
 def get_root_files(service: MediaCloudService = Depends(
     get_media_file_service)
 ):
@@ -30,7 +31,11 @@ def get_root_files(service: MediaCloudService = Depends(
 
 
 # Get all files and directories of certain parent directory
-@router.get('/directory/{parent_id}', response_model=list[FileModel])
+@router.get(
+    '/directory/{parent_id}',
+    response_model=list[Union[DirectoryResponse, FileResponse]],
+
+)
 def get_files(
     parent_id: int,
     x_directory_password: str | None = Header(default=None),

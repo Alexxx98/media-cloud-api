@@ -2,15 +2,13 @@ from datetime import datetime
 
 from sqlmodel import SQLModel, Field
 
-from app.db.schema import FileType
-
 
 class FileModel(SQLModel, table=True):
     __tablename__ = 'file'
 
     id: int = Field(primary_key=True, index=True)
+    type: str
     name: str
-    file_type: FileType = Field(nullable=False)
     parent_id: int | None = Field(foreign_key='file.id')
     password_hash: bytes | None = None
     hash_salt: bytes | None = None
