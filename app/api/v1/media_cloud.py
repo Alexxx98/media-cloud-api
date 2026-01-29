@@ -54,13 +54,12 @@ async def download_file(
 
 # Download files
 @router.get('/files/download')
-async def donwload_files(
-    file_ids: list[int],
+async def download_files(
+    file_ids: list[int] = Query(...),
     service: MediaCloudService = Depends(get_media_file_service)
 
 ):
     return await service.download_files(file_ids)
-
 
 # POST METHODS
 # Create directory

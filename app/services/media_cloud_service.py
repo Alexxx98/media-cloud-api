@@ -1,7 +1,10 @@
+import io
+import zipfile
+
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, Form, Header
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlmodel import Session, select
 
 from app.models.file import FileModel
@@ -50,8 +53,33 @@ class MediaCloudService:
 
     # Download files
     async def download_files(self, file_ids: list[int]):
-        # TODO: Implement multiple files download method
-        return
+        buffer = io.BytesIO()
+
+        # Compress files binary to zip archive
+        with zipfile.ZipFile(
+            buffer, 'w', compression=zipfile.ZIP_DEFLATED
+        ) as zip:
+            # Find file path by each id
+            for file_id in file_ids:
+                file_path = Path(
+                    self._db.get(FileModel, file_id).storage_path
+                )
+                if not file_path:
+                    continue
+
+                # Write file to zip archive
+                zip.write(file_path, arcname=file_path.name)
+        buffer.seek(0)
+
+        return StreamingResponse(
+            iter([buffer.getvalue()]),
+            media_type='application/zip',
+            headers={
+                'Content-Disposition': 'attachment; filename=cloud_files.zip'
+            },
+            # If there's no such header, output would be bytes,
+            # instead of downloadable zip archive.
+        )
 
     # POST METHODS
     # Create directory
