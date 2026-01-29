@@ -38,7 +38,7 @@ class MediaCloudService:
         return self._db.exec(select(FileModel).where(
             directory_id == FileModel.parent_id
         )).all()
-    
+
     # Download file
     async def download_file(self, file_id: int):
         print(type(FileResponse(
