@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, Form, Header
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 
 from app.models.file import FileModel
@@ -37,6 +38,20 @@ class MediaCloudService:
         return self._db.exec(select(FileModel).where(
             directory_id == FileModel.parent_id
         )).all()
+    
+    # Download file
+    async def download_file(self, file_id: int):
+        print(type(FileResponse(
+            self._db.get(FileModel, file_id).storage_path
+        )))
+        return FileResponse(
+            self._db.get(FileModel, file_id).storage_path
+        )
+
+    # Download files
+    async def download_files(self, file_ids: list[int]):
+        # TODO: Implement multiple files download method
+        return
 
     # POST METHODS
     # Create directory
