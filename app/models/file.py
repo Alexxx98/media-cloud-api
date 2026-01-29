@@ -16,4 +16,4 @@ class FileModel(SQLModel, table=True):
     mime_type: str | None = None
     storage_path: str | None = None
     added_by: str | None = None
-    uploaded_at: datetime = Field(default_factory=datetime.now)
+    added_at: datetime = Field(default_factory=datetime.now)
