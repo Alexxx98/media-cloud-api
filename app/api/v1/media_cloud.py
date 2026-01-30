@@ -1,6 +1,6 @@
 from typing import Union
 
-from fastapi import APIRouter, UploadFile, Query, Depends, Form, Header, Body
+from fastapi import APIRouter, UploadFile, Query, Depends, Form, Header
 from sqlmodel import Session
 
 from app.services.media_cloud_service import MediaCloudService
@@ -52,6 +52,16 @@ async def download_file(
     return await service.download_file(file_id)
 
 
+# Download files
+@router.get('/files/download')
+async def download_files(
+    file_ids: list[int] = Query(...),
+    service: MediaCloudService = Depends(get_media_file_service)
+
+):
+    return await service.download_multiple_files(file_ids)
+
+
 @router.get('/file/{file_id}/stream')
 async def stream_file(
     file_id: int,
@@ -83,17 +93,6 @@ async def upload_files(
         parent_id,
         uploaded_by
     )
-
-
-# Download files
-@router.post('/files/download')
-async def download_files(
-    file_ids: list[int] = Query(...),
-    request = Body(default=None),
-    service: MediaCloudService = Depends(get_media_file_service)
-
-):
-    return await service.download_files(file_ids, request)
 
 
 # PATCH METHODS

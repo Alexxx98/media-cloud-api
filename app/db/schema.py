@@ -4,7 +4,7 @@ from sqlmodel import SQLModel
 
 
 class CreateDirectory(SQLModel):
-    name: str
+    original_name: str
     parent_id: int | None = None
     password: str | None = None
     uploaded_by: str | None = None
@@ -13,7 +13,7 @@ class CreateDirectory(SQLModel):
 class DirectoryResponse(SQLModel):
     id: int
     type: str = 'directory'
-    name: str
+    original_name: str
     parent_id: int | None = None
     added_by: str | None = None
     added_at: datetime
@@ -22,7 +22,7 @@ class DirectoryResponse(SQLModel):
 class FileResponse(SQLModel):
     id: int
     type: str = 'media'
-    name: str
+    original_name: str
     parent_id: int
     size: int
     mime_type: str

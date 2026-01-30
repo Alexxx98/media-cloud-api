@@ -7,6 +7,7 @@ from fastapi import HTTPException, UploadFile, Form, Header
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlmodel import Session, select
 
+from app.core.constants import STORAGE_PATH
 from app.models.file import FileModel
 from app.db.schema import CreateDirectory, Rename, ChangePassword
 from app.services.auth_service import AuthService
@@ -44,20 +45,91 @@ class MediaCloudService:
 
     # Download file
     async def download_file(self, file_id: int):
-        file_path = Path(
-            self._db.get(FileModel, file_id).storage_path
-        )
+        file = self._db.get(FileModel, file_id)
+        file_path = STORAGE_PATH / file.hashed_name
         return FileResponse(
             file_path,
             headers={
-                'Content-Disposition': f'attachment; filename={file_path.name}'
+                'Content-Disposition': f'attachment; filename={file.original_name}'
             }
         )
+    
+    # Download multiple files
+    async def download_multiple_files(self, file_ids: list[int]):
+        buffer = io.BytesIO()
+
+        # Compress files binary to zip archive
+        with zipfile.ZipFile(
+            buffer, 'w', compression=zipfile.ZIP_DEFLATED
+        ) as zip:
+            # Find file path by each id
+            for index, file_id in enumerate(file_ids):
+                file = self._db.get(FileModel, file_id)
+                file_path = STORAGE_PATH / file.hashed_name
+                if not file_path:
+                    continue
+
+                # Write file to zip archive
+                zip.write(file_path, arcname=file.original_name)
+
+                # if last file, set archive name to parent directory name
+                try:
+                    file_ids[index + 1]
+                except IndexError:
+                    parent_dir = self._db.exec(
+                        select(FileModel).where(FileModel.id == file.parent_id)
+                    ).one()
+                    arch_name = parent_dir.original_name
+
+        buffer.seek(0)
+
+        return StreamingResponse(
+            iter([buffer.getvalue()]),
+            media_type='application/zip',
+            headers={
+                'Content-Disposition': f'attachment; filename={arch_name}.zip'
+            },
+            # Content-Disposition header informs how to process
+            # response payload and additional info
+        )
+
+    # Download directory
+    async def download_directory(self, directory_id: int):
+        files = self._db.exec(
+            select(FileModel).where(FileModel.parent_id == directory_id)
+        ).all()
+
+        def create_file_structure(file: FileModel):
+            if file.type == 'directory':
+                dir_files = self._db.exec(
+                    select(FileModel).where(FileModel.parent_id == file.id)
+                ).all()
+                for dir_file in dir_files:
+                    if dir_file.type == 'direcotry':
+                        create_file_structure(dir_file)
+
+            return
+
+        for file in files:
+            if file.type == 'directory':
+                dir_files = self._db.exec(
+                    select(FileModel).where(FileModel.parent_id == file.id)
+                ).all()
+        
+        # TODO: Implement logic to download whole directory tree
+
+        return
 
     # Stream file
     async def stream_file(self, file_id: int):
+        file = self._db.get(FileModel, file_id)
+        file_path = STORAGE_PATH / file.hashed_name
         return FileResponse(
-            self._db.get(FileModel, file_id).storage_path
+            file_path,
+            filename=file.original_name,
+            headers={
+                'Content-Disposition': 'inline;'
+            }
         )
 
     # POST METHODS
@@ -71,7 +143,7 @@ class MediaCloudService:
 
         db_directory = FileModel(
             type='directory',
-            name=directory.name,
+            original_name=directory.original_name,
             parent_id=directory.parent_id,
             password_hash=password,
             hash_salt=salt,
@@ -96,7 +168,8 @@ class MediaCloudService:
         response_files = []
 
         for file in files:
-            destination = MediaUtils.make_file_path(file.filename, 1)
+            hashed_name = self.auth_service.create_password(file.filename)
+            destination = STORAGE_PATH / hashed_name[0].decode('utf-8')
             mime_type = await MediaUtils.detect_mime_type(file)
 
             try:
@@ -109,11 +182,11 @@ class MediaCloudService:
 
             db_file = FileModel(
                 type='media',
-                name=file.filename,
+                hashed_name=hashed_name[0].decode('utf-8'),
+                original_name=file.filename,
                 parent_id=directory_id,
                 size=file.size,
                 mime_type=mime_type,
-                storage_path=destination,
                 added_by=uploaded_by
             )
 
@@ -124,46 +197,6 @@ class MediaCloudService:
             response_files.append(db_file)
 
         return response_files
-
-    # Download files
-    async def download_files(self, file_ids: list[int], request):
-        buffer = io.BytesIO()
-
-        # Compress files binary to zip archive
-        with zipfile.ZipFile(
-            buffer, 'w', compression=zipfile.ZIP_DEFLATED
-        ) as zip:
-            # Find file path by each id
-            for file_id in file_ids:
-                file_path = Path(
-                    self._db.get(FileModel, file_id).storage_path
-                )
-                if not file_path:
-                    continue
-
-                # Write file to zip archive
-                zip.write(file_path, arcname=file_path.name)
-        buffer.seek(0)
-
-        try:
-            if not request:
-                arch_name = 'cloud_files'
-            else:
-                arch_name = request['archive_name']
-        except KeyError:
-            raise HTTPException(
-                status_code=406, detail='Key should be archive_name'
-            )
-
-        return StreamingResponse(
-            iter([buffer.getvalue()]),
-            media_type='application/zip',
-            headers={
-                'Content-Disposition': f'attachment; filename={arch_name}.zip'
-            },
-            # Content-Disposition header informs how to process
-            # response payload and additional info
-        )
 
     # PATCH METHODS
     # Rename file or directory
@@ -237,8 +270,8 @@ class MediaCloudService:
                 self.delete_directory(file.id)
 
             # First remove file from filesystem
-            if file.storage_path:
-                file_path = Path(file.storage_path)
+            if file.hashed_name:
+                file_path = Path(STORAGE_PATH / file.hashed_name)
 
                 try:
                     if file_path.exists():
@@ -268,7 +301,7 @@ class MediaCloudService:
             raise HTTPException(status_code=404, detail='File not found')
 
         # Get file from filesystem
-        file_path = Path(db_file.storage_path)
+        file_path = Path(STORAGE_PATH / db_file.hashed_name)
 
         # Delete file from filesystem
         try:
@@ -290,7 +323,7 @@ class MediaCloudService:
     def delete_multiple_files(self, files_id: list[int]):
         for file_id in files_id:
             file_data = self._db.get(FileModel, file_id)
-            file_path = Path(file_data.storage_path)
+            file_path = Path(STORAGE_PATH / file_data.hashed_name)
 
             # Remove file from filesystem
             try:
