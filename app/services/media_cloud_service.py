@@ -44,9 +44,18 @@ class MediaCloudService:
 
     # Download file
     async def download_file(self, file_id: int):
-        print(type(FileResponse(
+        file_path = Path(
             self._db.get(FileModel, file_id).storage_path
-        )))
+        )
+        return FileResponse(
+            file_path,
+            headers={
+                'Content-Disposition': f'attachment; filename={file_path.name}'
+            }
+        )
+
+    # Stream file
+    async def stream_file(self, file_id: int):
         return FileResponse(
             self._db.get(FileModel, file_id).storage_path
         )
@@ -152,8 +161,8 @@ class MediaCloudService:
             headers={
                 'Content-Disposition': f'attachment; filename={arch_name}.zip'
             },
-            # If there's no such header, output would be bytes,
-            # instead of downloadable zip archive.
+            # Content-Disposition header informs how to process
+            # response payload and additional info
         )
 
     # PATCH METHODS

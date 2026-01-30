@@ -52,6 +52,14 @@ async def download_file(
     return await service.download_file(file_id)
 
 
+@router.get('/file/{file_id}/stream')
+async def stream_file(
+    file_id: int,
+    service: MediaCloudService = Depends(get_media_file_service)
+):
+    return await service.stream_file(file_id)
+
+
 # POST METHODS
 # Create directory
 @router.post('/directory/create', response_model=DirectoryResponse)
