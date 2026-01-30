@@ -148,3 +148,12 @@ def delete_file(
     service: MediaCloudService = Depends(get_media_file_service)
 ):
     return service.delete_file(file_id)
+
+
+# Delete multiple files
+@router.delete('/files/delete')
+def delete_multiple_files(
+    file_ids: list[int] = Query(...),
+    service: MediaCloudService = Depends(get_media_file_service)
+):
+    return service.delete_multiple_files(file_ids)

@@ -285,3 +285,25 @@ class MediaCloudService:
         self._db.commit()
 
         return {'status': 'File deleted'}
+
+    # Delete multiple files
+    def delete_multiple_files(self, files_id: list[int]):
+        for file_id in files_id:
+            file_data = self._db.get(FileModel, file_id)
+            file_path = Path(file_data.storage_path)
+
+            # Remove file from filesystem
+            try:
+                if file_path.exists():
+                    file_path.unlink()
+            except Exception as ext:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f'Deleting file failed: {ext}'
+                )
+
+            # Remove from db
+            self._db.delete(file_data)
+            self._db.commit()
+
+        return {'status': 'files deleted.'}
