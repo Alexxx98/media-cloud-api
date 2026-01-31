@@ -62,6 +62,16 @@ async def download_files(
     return await service.download_multiple_files(file_ids)
 
 
+# Download directory
+@router.get('/directory/{directory_id}/download')
+async def download_directory(
+    directory_id: int,
+    service: MediaCloudService = Depends(get_media_file_service)
+):
+    return await service.download_directory(directory_id)
+
+
+# Stream file
 @router.get('/file/{file_id}/stream')
 async def stream_file(
     file_id: int,

@@ -53,7 +53,7 @@ class MediaCloudService:
                 'Content-Disposition': f'attachment; filename={file.original_name}'
             }
         )
-    
+
     # Download multiple files
     async def download_multiple_files(self, file_ids: list[int]):
         buffer = io.BytesIO()
@@ -95,30 +95,37 @@ class MediaCloudService:
 
     # Download directory
     async def download_directory(self, directory_id: int):
-        files = self._db.exec(
-            select(FileModel).where(FileModel.parent_id == directory_id)
-        ).all()
+        root_name = self._db.get(FileModel, directory_id).original_name
 
-        def create_file_structure(file: FileModel):
-            if file.type == 'directory':
-                dir_files = self._db.exec(
-                    select(FileModel).where(FileModel.parent_id == file.id)
-                ).all()
-                for dir_file in dir_files:
-                    if dir_file.type == 'direcotry':
-                        create_file_structure(dir_file)
+        buffer = io.BytesIO()
+        zip = zipfile.ZipFile(buffer, 'w', compression=zipfile.ZIP_DEFLATED)
 
-            return
+        def create_file_structure(directory_id: int, path: Path):
+            dir_files = self._db.exec(
+                select(FileModel).where(FileModel.parent_id == directory_id)
+            ).all()
 
-        for file in files:
-            if file.type == 'directory':
-                dir_files = self._db.exec(
-                    select(FileModel).where(FileModel.parent_id == file.id)
-                ).all()
-        
-        # TODO: Implement logic to download whole directory tree
+            # Recursively run through directories
+            for dir_file in dir_files:
+                if dir_file.type == 'directory':
+                    new_path = Path(path / dir_file.original_name)
+                    create_file_structure(dir_file.id, new_path)
+                else:
+                    real_path = STORAGE_PATH / dir_file.hashed_name
+                    arc_path = path / dir_file.original_name
+                    zip.write(real_path, arcname=arc_path)
 
-        return
+        create_file_structure(directory_id, Path(''))
+        zip.close()
+        buffer.seek(0)
+
+        return StreamingResponse(
+            iter([buffer.getvalue()]),
+            media_type='application/zip',
+            headers={
+                'Content-Disposition': f'attachment; filename={root_name}.zip'
+            }
+        )
 
     # Stream file
     async def stream_file(self, file_id: int):
@@ -175,9 +182,9 @@ class MediaCloudService:
             try:
                 with open(destination, 'wb') as media_file:
                     media_file.write(file.file.read())
-            except Exception:
+            except Exception as ext:
                 raise HTTPException(
-                    status_code=400, detail='Failed to save the file.'
+                    status_code=400, detail=f'Failed to save the file: {ext}'
                 )
 
             db_file = FileModel(
