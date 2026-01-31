@@ -94,8 +94,19 @@ class MediaCloudService:
         )
 
     # Download directory
-    async def download_directory(self, directory_id: int):
-        root_name = self._db.get(FileModel, directory_id).original_name
+    async def download_directory(
+        self, directory_id: int,
+        x_directory_password: str | None = Header(default=None)
+    ):
+        root_directory = self._db.get(FileModel, directory_id)
+
+        # Authorize
+        if root_directory.password_hash:
+            self.auth_service.verify_access(
+                root_directory, x_directory_password
+            )
+
+        root_name = root_directory.original_name
 
         buffer = io.BytesIO()
         zip = zipfile.ZipFile(buffer, 'w', compression=zipfile.ZIP_DEFLATED)

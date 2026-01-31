@@ -31,7 +31,7 @@ class FileResponse(SQLModel):
 
 
 class Rename(SQLModel):
-    name: str
+    original_name: str
 
 
 class ChangePassword(SQLModel):
