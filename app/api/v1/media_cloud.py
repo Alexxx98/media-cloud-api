@@ -93,13 +93,13 @@ def create_directory(
 # Upload a files
 @router.post('/file/upload', response_model=list[FileResponse])
 async def upload_files(
-    file: list[UploadFile],
+    files: list[UploadFile],
     parent_id: int = Form(...),
     uploaded_by: str | None = Form(None),
     service: MediaCloudService = Depends(get_media_file_service)
 ):
     return await service.upload_files(
-        file,
+        files,
         parent_id,
         uploaded_by
     )

@@ -161,11 +161,11 @@ class MediaCloudService:
 
         db_directory = FileModel(
             type='directory',
-            original_name=directory.original_name,
+            original_name=directory.name,
             parent_id=directory.parent_id,
             password_hash=password,
             hash_salt=salt,
-            added_by=directory.uploaded_by
+            added_by=directory.added_by
         )
 
         self._db.add(db_directory)

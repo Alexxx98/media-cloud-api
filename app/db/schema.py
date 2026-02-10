@@ -4,10 +4,10 @@ from sqlmodel import SQLModel
 
 
 class CreateDirectory(SQLModel):
-    original_name: str
+    name: str
     parent_id: int | None = None
     password: str | None = None
-    uploaded_by: str | None = None
+    added_by: str | None = None
 
 
 class DirectoryResponse(SQLModel):
