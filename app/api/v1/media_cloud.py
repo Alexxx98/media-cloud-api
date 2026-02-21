@@ -36,14 +36,22 @@ def get_root_files(service: MediaCloudService = Depends(
     response_model=list[Union[DirectoryResponse, FileResponse]],
 
 )
-def get_files(
-    parent_id: int,
+def open_directory(
+    directory_id: int,
     x_directory_password: str | None = Header(default=None),
     service: MediaCloudService = Depends(get_media_file_service)
 ):
-    return service.get_files(parent_id, x_directory_password)
+    return service.open_directory(directory_id, x_directory_password)
 
 
+# Get previous directory data and fetch its files
+def open_previous_directory(
+    directory_id: int, service: MediaCloudService = Depends(get_media_file_service)
+):
+    return service.open_previous_directory(directory_id)
+
+
+# Download single file
 @router.get('/file/{file_id}/download')
 async def download_file(
     file_id: int,

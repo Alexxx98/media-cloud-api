@@ -28,7 +28,7 @@ class MediaCloudService:
         ).all()
 
     # Get files and directories by it's parent directory id
-    def get_files(
+    def open_directory(
         self,
         directory_id: int,
         x_directory_password: str | None = Header(default=None)
@@ -42,6 +42,13 @@ class MediaCloudService:
         return self._db.exec(select(FileModel).where(
             directory_id == FileModel.parent_id
         )).all()
+
+    # Get previous directory info and fetch its files
+    def open_previous_directory(self, directory_id: int):
+        directory = self._db.get(FileModel, directory_id)
+        files = self._db.exec(select(FileModel)).where(FileModel.parent_id == directory_id).all()
+
+        return {'directory': directory, 'files': files}
 
     # Download file
     async def download_file(self, file_id: int):
