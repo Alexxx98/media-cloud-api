@@ -14,5 +14,4 @@ wheels/
 db.env
 
 # Other
-temp_storage
 .vscode

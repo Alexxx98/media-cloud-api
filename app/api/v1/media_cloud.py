@@ -44,16 +44,6 @@ def open_directory(
     return service.open_directory(directory_id, x_directory_password)
 
 
-<<<<<<< HEAD
-=======
-# Get previous directory data and fetch its files
-def open_previous_directory(
-    directory_id: int, service: MediaCloudService = Depends(get_media_file_service)
-):
-    return service.open_previous_directory(directory_id)
-
-
->>>>>>> 489a711be8066296db3137731ed6ffd15d377e24
 # Download single file
 @router.get('/file/{file_id}/download')
 async def download_file(

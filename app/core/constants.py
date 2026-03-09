@@ -2,12 +2,8 @@ import os
 
 from pathlib import Path
 
-from dotenv import load_dotenv
 
-
-load_dotenv()
-
-STORAGE_PATH = Path(os.getenv('STORAGE_PATH'))
+STORAGE_PATH = Path(os.environ['STORAGE_PATH'])
 
 MIME_TYPES = {
   "html": "text/html",
