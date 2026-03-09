@@ -2,6 +2,8 @@ import os
 
 from dotenv import load_dotenv
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
@@ -13,9 +15,14 @@ from app.db.session_dependency import engine
 
 load_dotenv()
 setup_logging()
-SQLModel.metadata.create_all(bind=engine)
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    SQLModel.metadata.create_all(bind=engine)
+    yield
+    pass
+
+app = FastAPI(lifespan=lifespan)
 
 origins = os.getenv('ORIGINS')
 

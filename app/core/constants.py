@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 
-STORAGE_PATH = Path(os.environ['STORAGE_PATH'])
+STORAGE_PATH = Path(os.environ['CONTAINER_STORAGE'])
 
 MIME_TYPES = {
   "html": "text/html",
