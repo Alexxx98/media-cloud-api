@@ -158,6 +158,8 @@ class MediaCloudService:
         # Hash the password using bcrypt
         if password:
             password, salt = self.auth_service.create_password(password)
+        else:
+            password = None
 
         db_directory = FileModel(
             type='directory',

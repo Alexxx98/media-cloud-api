@@ -44,6 +44,7 @@ def get_files(
     return service.get_files(parent_id, x_directory_password)
 
 
+# Download single file
 @router.get('/file/{file_id}/download')
 async def download_file(
     file_id: int,
