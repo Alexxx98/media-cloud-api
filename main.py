@@ -1,7 +1,5 @@
 import os
 
-from dotenv import load_dotenv
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -13,8 +11,8 @@ from app.api.v1 import media_cloud
 from app.db.session_dependency import engine
 
 
-load_dotenv()
 setup_logging()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
