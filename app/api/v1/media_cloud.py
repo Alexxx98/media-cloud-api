@@ -32,7 +32,7 @@ def get_root_files(service: MediaCloudService = Depends(
 
 # Get all files and directories of certain parent directory
 @router.get(
-    '/directory/{parent_id}',
+    '/directory/{directory_id}',
     response_model=list[Union[DirectoryResponse, FileResponse]],
 
 )
