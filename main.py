@@ -1,6 +1,7 @@
 import os
 
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +12,7 @@ from app.api.v1 import media_cloud
 from app.db.session_dependency import engine
 
 
+load_dotenv()
 setup_logging()
 
 

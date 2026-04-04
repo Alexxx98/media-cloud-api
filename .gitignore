@@ -13,5 +13,9 @@ wheels/
 .env
 db.env
 
+# Scripts
+run-db.sh
+run-api.sh
+
 # Other
 .vscode

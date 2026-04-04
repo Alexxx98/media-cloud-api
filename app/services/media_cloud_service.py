@@ -46,7 +46,7 @@ class MediaCloudService:
     # Get previous directory info and fetch its files
     def open_previous_directory(self, directory_id: int):
         directory = self._db.get(FileModel, directory_id)
-        files = self._db.exec(select(FileModel)).where(FileModel.parent_id == directory_id).all()
+        files = self._db.exec(select(FileModel).where(FileModel.parent_id == directory_id)).all()
 
         return {'directory': directory, 'files': files}
 
